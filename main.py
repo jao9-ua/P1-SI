@@ -363,7 +363,6 @@ def is_arc_consistent(tablero, variable1, palabra1, variable2, palabra2, almacen
     
     return True
 
-
 #########################################################################  
 # Principal
 #########################################################################
@@ -393,7 +392,8 @@ def main():
     
     almacen=creaAlmacen()
     game_over=False
-    tablero=Tablero(FILS, COLS)    
+    tablero=Tablero(FILS, COLS)
+    ac3_executed = False 
     
     while not game_over:
         for event in pygame.event.get():
@@ -404,15 +404,18 @@ def main():
                 pos=pygame.mouse.get_pos()                
                 if pulsaBotonFC(pos, anchoVentana, altoVentana):
                     print("FC")
-                    variables = identificarVariables(tablero, almacen)
+                    if not ac3_executed:
+                        variables = identificarVariables(tablero, almacen)
+                        print("No AC3")
                     res = forwardChecking(tablero, variables, almacen)
                     if not res:
-                        MessageBox.showwarning("Alerta", "No hay solución")                                  
+                        MessageBox.showwarning("Alerta", "No hay solución")                                 
                 elif pulsaBotonAC3(pos, anchoVentana, altoVentana):                    
                     print("AC3")
                     variables = identificarVariables(tablero, almacen)
                     if ac3(tablero, variables, almacen):
                         MessageBox.showinfo("AC3 Result", "AC3 completed successfully. Domains have been reduced.")
+                        ac3_executed = True
                     else:
                         MessageBox.showwarning("AC3 Result", "No solution found.")
                 elif pulsaBotonReset(pos, anchoVentana, altoVentana):                   
