@@ -14,8 +14,8 @@ BLANCO=(255, 255, 255)
 MARGEN=5 #ancho del borde entre celdas
 MARGEN_INFERIOR=60 #altura del margen inferior entre la cuadrícula y la ventana
 TAM=60  #tamaño de la celda
-FILS=5 # número de filas del crucigrama
-COLS=6 # número de columnas del crucigrama
+FILS=2 # número de filas del crucigrama
+COLS=2 # número de columnas del crucigrama
 
 LLENA='*' 
 VACIA='-'
@@ -213,8 +213,12 @@ def identificarVariables(tablero, almacen):
     
     return variables
 
-
 def forwardChecking(tablero, variables, almacen):
+    print("\nIniciamos forward_checking")
+    print("Dominios de las variables no asignadas al inicio:")
+    for var in variables:
+        print(f"{var.nombre}: {var.dominio}")
+
     if not variables:
         return True
     
@@ -222,11 +226,15 @@ def forwardChecking(tablero, variables, almacen):
     for palabra in variable.dominio:
         if consistent(tablero, variable, palabra, almacen):
             assign(tablero, variable, palabra)
-            
+            print(f"\nVariable seleccionada: {variable.nombre}")
+            print(f"Asignamos \"{palabra}\" a la variable seleccionada.")
+            print("Recorremos todas las variables sin asignar y eliminamos \"{}\" del resto de dominios para no permitir palabras repetidas:".format(palabra))
             if forwardChecking(tablero, variables[1:], almacen):
-                
                 return True
             unassign(tablero, variable, palabra)
+            print(f"Dominios de las variables no asignadas después de restaurar:")
+            for var in variables:
+                print(f"{var.nombre}: {var.dominio}")
     return False
 
 def consistent(tablero, variable, palabra, almacen):
