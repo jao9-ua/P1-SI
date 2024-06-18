@@ -296,57 +296,72 @@ def imprimirTablero(tablero):
         print()
 
 def ac3(tablero, variables, almacen):
-    # Inicializa la cola con todas las aristas del problema
-    cola = [(vi, vj) for vi in variables for vj in variables if vi != vj and comparten_celda(vi, vj)]
-    
     print("DOMINIOS ANTES DEL AC3")
-    for var in variables:
-        print(f"Nombre {var.nombre} Posición {var.fila} {var.columna} Tipo: {var.orientacion} Dominio: {var.dominio}")
+    for variable in variables:
+        print(f"Nombre {variable.nombre} Posición {variable.fila} {variable.columna} Tipo: {variable.orientacion} Dominio: {variable.dominio}")
     
-    while cola:
-        (vk, vm) = cola.pop(0)
+    # Inicializa la cola de arcos con todas las aristas del grafo de restricciones
+    queue = [(vi, vj) for vi in variables for vj in variables if vi != vj and are_neighbors(vi, vj)]
+    
+    while queue:
+        (vk, vm) = queue.pop(0)
+        cambio = False
         if revise(tablero, vk, vm, almacen):
             if not vk.dominio:
-                return False
+                return False  # Si el dominio se queda vacío, no hay solución
+            cambio = True
+        if cambio:
             for vr in variables:
-                if vr != vk and vr != vm and comparten_celda(vr, vk):
-                    cola.append((vr, vk))
+                if vr != vk and are_neighbors(vr, vk):
+                    queue.append((vr, vk))
     
-    print("DOMINIOS DESPUÉS DEL AC3")
-    for var in variables:
-        print(f"Nombre {var.nombre} Posición {var.fila} {var.columna} Tipo: {var.orientacion} Dominio: {var.dominio}")
+    print("\nDOMINIOS DESPUÉS DEL AC3")
+    for variable in variables:
+        print(f"Nombre {variable.nombre} Posición {variable.fila} {variable.columna} Tipo: {variable.orientacion} Dominio: {variable.dominio}")
     
     return True
 
-def revise(tablero, vk, vm, almacen):
-    revisado = False
-    for x in vk.dominio[:]:
-        if not any(is_arc_consistent(tablero, vm, y, vk, x, almacen) for y in vm.dominio):
-            vk.dominio.remove(x)
-            revisado = True
-    return revisado
+def are_neighbors(vi, vj):
+    # Determina si dos variables son vecinos (comparten al menos una celda)
+    if vi.orientacion == 'H':
+        cells_vi = [(vi.fila, vi.columna + i) for i in range(vi.longitud)]
+    else:
+        cells_vi = [(vi.fila + i, vi.columna) for i in range(vi.longitud)]
+    
+    if vj.orientacion == 'H':
+        cells_vj = [(vj.fila, vj.columna + i) for i in range(vj.longitud)]
+    else:
+        cells_vj = [(vj.fila + i, vj.columna) for i in range(vj.longitud)]
+    
+    return bool(set(cells_vi) & set(cells_vj))
+
+def revise(tablero, vi, vj, almacen):
+    revised = False
+    for x in vi.dominio[:]:
+        if not any(is_arc_consistent(tablero, vi, x, vj, y, almacen) for y in vj.dominio):
+            vi.dominio.remove(x)
+            revised = True
+    return revised
 
 def is_arc_consistent(tablero, variable1, palabra1, variable2, palabra2, almacen):
-    for i, char in enumerate(palabra1):
-        fil1, col1 = variable1.fila, variable1.columna + i if variable1.orientacion == 'H' else variable1.fila + i
-        if variable2.orientacion == 'H':
-            if col1 in range(variable2.columna, variable2.columna + variable2.longitud) and fil1 == variable2.fila:
-                j = col1 - variable2.columna
-                if palabra2[j] != char:
-                    return False
-        else:
-            if fil1 in range(variable2.fila, variable2.fila + variable2.longitud) and col1 == variable2.columna:
-                j = fil1 - variable2.fila
-                if palabra2[j] != char:
-                    return False
+    if variable1.orientacion == 'H':
+        cells1 = [(variable1.fila, variable1.columna + i) for i in range(variable1.longitud)]
+    else:
+        cells1 = [(variable1.fila + i, variable1.columna) for i in range(variable1.longitud)]
+    
+    if variable2.orientacion == 'H':
+        cells2 = [(variable2.fila, variable2.columna + i) for i in range(variable2.longitud)]
+    else:
+        cells2 = [(variable2.fila + i, variable2.columna) for i in range(variable2.longitud)]
+    
+    for (fil1, col1) in cells1:
+        if (fil1, col1) in cells2:
+            i = cells1.index((fil1, col1))
+            j = cells2.index((fil1, col1))
+            if palabra1[i] != palabra2[j]:
+                return False
+    
     return True
-
-def comparten_celda(var1, var2):
-    if var1.orientacion == 'H' and var2.orientacion == 'V':
-        return var2.columna in range(var1.columna, var1.columna + var1.longitud) and var1.fila in range(var2.fila, var2.fila + var2.longitud)
-    elif var1.orientacion == 'V' and var2.orientacion == 'H':
-        return var1.columna in range(var2.columna, var2.columna + var2.longitud) and var2.fila in range(var1.fila, var1.fila + var1.longitud)
-    return False
 
 
 #########################################################################  
