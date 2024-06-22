@@ -1,5 +1,6 @@
 import pygame
 import tkinter
+import time
 from tkinter import *
 from tkinter.simpledialog import *
 from tkinter import messagebox as MessageBox
@@ -14,8 +15,8 @@ BLANCO=(255, 255, 255)
 MARGEN=5 #ancho del borde entre celdas
 MARGEN_INFERIOR=60 #altura del margen inferior entre la cuadrícula y la ventana
 TAM=60  #tamaño de la celda
-FILS=2 # número de filas del crucigrama
-COLS=2 # número de columnas del crucigrama
+FILS=3 # número de filas del crucigrama
+COLS=3 # número de columnas del crucigrama
 
 LLENA='*' 
 VACIA='-'
@@ -214,10 +215,11 @@ def identificarVariables(tablero, almacen):
     return variables
 
 def forwardChecking(tablero, variables, almacen):
+    '''
     print("\nIniciamos forward_checking")
     print("Dominios de las variables no asignadas al inicio:")
     for var in variables:
-        print(f"{var.nombre}: {var.dominio}")
+        print(f"{var.nombre}: {var.dominio}")'''
 
     if not variables:
         return True
@@ -226,15 +228,17 @@ def forwardChecking(tablero, variables, almacen):
     for palabra in variable.dominio:
         if consistent(tablero, variable, palabra, almacen):
             assign(tablero, variable, palabra)
+            '''
             print(f"\nVariable seleccionada: {variable.nombre}")
             print(f"Asignamos \"{palabra}\" a la variable seleccionada.")
-            print("Recorremos todas las variables sin asignar y eliminamos \"{}\" del resto de dominios para no permitir palabras repetidas:".format(palabra))
+            print("Recorremos todas las variables sin asignar y eliminamos \"{}\" del resto de dominios".format(palabra))
+            print("para no permitir palabras repetidas:")'''
             if forwardChecking(tablero, variables[1:], almacen):
                 return True
             unassign(tablero, variable, palabra)
-            print(f"Dominios de las variables no asignadas después de restaurar:")
+            '''print(f"Dominios de las variables no asignadas después de restaurar:")
             for var in variables:
-                print(f"{var.nombre}: {var.dominio}")
+                print(f"{var.nombre}: {var.dominio}")'''
     return False
 
 def consistent(tablero, variable, palabra, almacen):
@@ -296,6 +300,16 @@ def unassign(tablero, variable, palabra):
         else:
             tablero.setCelda(variable.fila + i, variable.columna, VACIA)
 
+def imprimirVariables(variables):
+    print("Variables actuales en el tablero:")
+    for var in variables:
+        print(f"Nombre: {var.nombre}")
+        print(f"Posición: ({var.fila}, {var.columna})")
+        print(f"Longitud: {var.longitud}")
+        print(f"Orientación: {var.orientacion}")
+        print(f"Dominio: {var.dominio}")
+        print("-----")
+
 def imprimirTablero(tablero):
     print("Estado final del tablero:")
     for fila in range(tablero.getAlto()):
@@ -304,30 +318,29 @@ def imprimirTablero(tablero):
         print()
 
 def ac3(tablero, variables, almacen):
-    print("DOMINIOS ANTES DEL AC3")
-    for variable in variables:
-        print(f"Nombre {variable.nombre} Posición {variable.fila} {variable.columna} Tipo: {variable.orientacion} Dominio: {variable.dominio}")
-    
-    # Inicializa la cola de arcos con todas las aristas del grafo de restricciones
+    print("AC3 Inicio: Dominios antes de AC3")
+    for v in variables:
+        print(f"{v.nombre}: {v.dominio}")
+
     queue = [(vi, vj) for vi in variables for vj in variables if vi != vj and are_neighbors(vi, vj)]
-    
     while queue:
         (vk, vm) = queue.pop(0)
-        cambio = False
+        #print(f"Revisando arco entre {vk.nombre} y {vm.nombre} porque deben ser consistentes según las restricciones.")
         if revise(tablero, vk, vm, almacen):
             if not vk.dominio:
-                return False  # Si el dominio se queda vacío, no hay solución
-            cambio = True
-        if cambio:
+                #print("Fallo, dominio vacío después de revisar.")
+                return False
             for vr in variables:
                 if vr != vk and are_neighbors(vr, vk):
                     queue.append((vr, vk))
-    
-    print("\nDOMINIOS DESPUÉS DEL AC3")
-    for variable in variables:
-        print(f"Nombre {variable.nombre} Posición {variable.fila} {variable.columna} Tipo: {variable.orientacion} Dominio: {variable.dominio}")
+                    #print(f"Añadiendo arco ({vr.nombre}, {vk.nombre}) a la cola porque cambiar el dominio de {vk.nombre} podría afectar a {vr.nombre}")
+
+    print("AC3 Final: Dominios después de AC3")
+    for v in variables:
+        print(f"{v.nombre}: {v.dominio}")
     
     return True
+
 
 def are_neighbors(vi, vj):
     # Determina si dos variables son vecinos (comparten al menos una celda)
@@ -349,7 +362,9 @@ def revise(tablero, vi, vj, almacen):
         if not any(is_arc_consistent(tablero, vi, x, vj, y, almacen) for y in vj.dominio):
             vi.dominio.remove(x)
             revised = True
+            #print(f"Eliminando {x} de {vi.nombre} porque no es consistente con ningún valor en el dominio de {vj.nombre}")
     return revised
+
 
 def is_arc_consistent(tablero, variable1, palabra1, variable2, palabra2, almacen):
     if variable1.orientacion == 'H':
@@ -412,16 +427,24 @@ def main():
                 pos=pygame.mouse.get_pos()                
                 if pulsaBotonFC(pos, anchoVentana, altoVentana):
                     print("FC")
+                    #imprimeAlmacen(almacen)
+                    start_time = time.time()
                     if not ac3_executed:
                         variables = identificarVariables(tablero, almacen)
                         print("No AC3")
+                        #imprimirVariables(variables)
                     res = forwardChecking(tablero, variables, almacen)
+                    fc_time = time.time() - start_time
+                    print(f"Tiempo de ejecución FC: {fc_time:.10f} segundos")
                     if not res:
                         MessageBox.showwarning("Alerta", "No hay solución")                                 
                 elif pulsaBotonAC3(pos, anchoVentana, altoVentana):                    
                     print("AC3")
+                    start_time = time.time()
                     variables = identificarVariables(tablero, almacen)
                     if ac3(tablero, variables, almacen):
+                        ac3_time = time.time() - start_time
+                        print(f"Tiempo de ejecución AC3: {ac3_time:.10f} segundos")
                         MessageBox.showinfo("AC3 Result", "AC3 completed successfully. Domains have been reduced.")
                         ac3_executed = True
                     else:
